@@ -80,9 +80,9 @@ class LabelingMainWindow(QWidget):
         screenRect = desktop.screenGeometry()
         print screenRect.width()
         print screenRect.height()
-        self.setGeometry(0, 0, screenRect.width(), screenRect.height())
+        self.setGeometry(50, 50, screenRect.width()-100, screenRect.height()-100)
         self.setWindowTitle('标注系统')
-        self.showFullScreen()
+        self.show()
 
 
 
