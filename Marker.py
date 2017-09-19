@@ -6,7 +6,7 @@ import scanpdf
 import json
 import os
 
-from PyQt5.QtWidgets import qApp, QGridLayout,QApplication, QComboBox,QVBoxLayout,QDialog,QTableWidgetItem,QWidget, QTableWidget, QPushButton,QMainWindow, QFileDialog, QLabel, QAction, QMenu
+from PyQt5.QtWidgets import qApp, QDesktopWidget,QGridLayout,QApplication, QComboBox,QVBoxLayout,QDialog,QTableWidgetItem,QWidget, QTableWidget, QPushButton,QMainWindow, QFileDialog, QLabel, QAction, QMenu
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtGui import QIcon
 
@@ -58,7 +58,7 @@ class LabelingMainWindow(QWidget):
         submitbtn.clicked.connect(self.uploadfile)
         submitbtn.resize(submitbtn.sizeHint())
         self.MyTable = QTableWidget(1,1)
-        self.MyTable.setColumnWidth(0, 1000)
+        self.MyTable.setColumnWidth(0, 800)
         self.MyTable.setShowGrid(False)
         item = QTableWidgetItem('0/0')
         self.MyTable.setHorizontalHeaderItem(0, item)
@@ -76,9 +76,13 @@ class LabelingMainWindow(QWidget):
         layout.addWidget(savebtn, 12, 0, 1, 1)
         layout.addWidget(submitbtn, 12, 4, 1, 1)
         self.setLayout(layout)
-        self.setGeometry(100, 0, 1000, 1000)
+        desktop = QDesktopWidget()
+        screenRect = desktop.screenGeometry()
+        print screenRect.width()
+        print screenRect.height()
+        self.setGeometry(0, 0, screenRect.width(), screenRect.height())
         self.setWindowTitle('标注系统')
-        self.show()
+        self.showFullScreen()
 
 
 
@@ -160,10 +164,11 @@ class LabelingMainWindow(QWidget):
         self.dialog.close()
     def selectDirectory(self):
         filename = QFileDialog.getExistingDirectory(self,directory='~/Desktop')
-        self.folderText = filename
-        self.dialog = InfoDialog(title=filename)
-        self.dialog.surebtn.clicked.connect(self.sureFolder)
-        self.dialog.show()
+        if filename:
+            self.folderText = filename
+            self.dialog = InfoDialog(title=filename)
+            self.dialog.surebtn.clicked.connect(self.sureFolder)
+            self.dialog.show()
 
 
 
@@ -218,7 +223,6 @@ class submitDialog(InfoDialog):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-
     myWindow = LabelingMainWindow()
     myWindow.setWindowIcon(QIcon('icon.png'))
     sys.exit(app.exec_())
