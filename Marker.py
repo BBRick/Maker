@@ -116,13 +116,13 @@ class LabelingMainWindow(QWidget):
         self.submitDialog.close()
         # print pathString
         ftpmanager.uploadfile(self.ftp, "~/result/"+pathString, pathString)
-        os.remove(pathString)
+        # os.remove(pathString)
         pass
 
     def lastPDF(self):
         if self.index > 0:
             self.index -= 1
-            self.showScanPDFText()
+            self.scanpdffolder()
     def nextPDF(self):
         self.index += 1
         self.scanpdffolder()
