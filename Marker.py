@@ -178,7 +178,6 @@ class LabelingMainWindow(QWidget):
         # self.previewTextEdit.setText(json.dumps(self.resultDic))
         self.setPreViewData()
 
-    def showUploadInfo(self):
 
 
     def uploadfile(self):
@@ -277,7 +276,6 @@ class LabelingMainWindow(QWidget):
     def setQLabelText(self, text):
         self.qblabel.setText(text)
         self.qblabel.adjustSize()
-
 
 
 class HintDialog(QWidget):
