@@ -5,29 +5,42 @@ import ftpmanager
 import scanpdf
 import json
 import os
+import copy
 
-from PyQt5.QtWidgets import qApp, QDesktopWidget,QGridLayout,QApplication, QComboBox,QVBoxLayout,QDialog,QTableWidgetItem,QWidget, QTableWidget, QPushButton,QMainWindow, QFileDialog, QLabel, QAction, QMenu
+from PyQt5.QtWidgets import qApp, QTextEdit,QDesktopWidget,QGridLayout,QApplication, QComboBox,QVBoxLayout,QDialog,QTableWidgetItem,QWidget, QTableWidget, QPushButton,QMainWindow, QFileDialog, QLabel, QAction, QMenu
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtGui import QIcon
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 class LabelingMainWindow(QWidget):
 
     def __init__(self):
         super(LabelingMainWindow, self).__init__()
         self.folderText = scanpdf.ROOT_PATH
+        self.initUI()
+        self.typeList = ['title','author','body']
+        self.initTempData()
+        self.ftp = ftpmanager.ftpconnect(ftpmanager.FTPIP, ftpmanager.FTPUSER, ftpmanager.FTPPASSWD)
+
+
+    def initTempData(self):
+        self.titleDic = {}
+        self.authorDic = {}
+        self.bodyDict = {}
+        self.NADict = {}
+        self.resultDic = {}
+        self.rows = []
         self.stringList = []
         self.pathList = []
         self.realPathList = []
         self.pdfstring = ''
         self.index = 0
-        self.initUI()
-        self.typeList = ['title','author','date']
-        self.resultDic = {}
-        self.ftp = ftpmanager.ftpconnect(ftpmanager.FTPIP, ftpmanager.FTPUSER, ftpmanager.FTPPASSWD)
+        self.pageList = []
 
 
     def initUI(self):
-
         infoLabel = QLabel(self)
         infoLabel.move(20,20)
         infoLabel.setText('PDF文件夹:')
@@ -49,19 +62,33 @@ class LabelingMainWindow(QWidget):
         lastbtn = QPushButton('上一个', self)
         lastbtn.clicked.connect(self.lastPDF)
         lastbtn.resize(lastbtn.sizeHint())
-        # nextbtn.move(20, 700)
         savebtn = QPushButton('保存已选内容', self)
         savebtn.clicked.connect(self.creatJSONString)
         savebtn.resize(savebtn.sizeHint())
-
         submitbtn = QPushButton('提交此页内容', self)
         submitbtn.clicked.connect(self.uploadfile)
         submitbtn.resize(submitbtn.sizeHint())
+        desktop = QDesktopWidget()
+        screenRect = desktop.screenGeometry()
+
+        clearbtn = QPushButton('清除标签标记内容', self)
+        clearbtn.resize(submitbtn.sizeHint())
+        clearbtn.clicked.connect(self.clearAction)
+
         self.MyTable = QTableWidget(1,1)
-        self.MyTable.setColumnWidth(0, 800)
+        self.MyTable.setColumnWidth(0, (screenRect.width()-100) / 2 - 20)
         self.MyTable.setShowGrid(False)
+
         item = QTableWidgetItem('0/0')
         self.MyTable.setHorizontalHeaderItem(0, item)
+        self.previewTable = QTableWidget(1,1)
+        self.previewTable.setColumnWidth(0, (screenRect.width() - 100) / 2 - 20)
+        self.previewTable.setShowGrid(False)
+        self.previewTable.verticalHeader().setVisible(False)
+        previewItem = QTableWidgetItem('标记内容预览')
+        self.previewTable.setHorizontalHeaderItem(0, previewItem)
+        # self.previewTextEdit = QTextEdit(self)
+        # self.previewTextEdit.textChanged[str].connect(self.onChanged)
         layout = QGridLayout()
         layout.setHorizontalSpacing(50)
         layout.setVerticalSpacing(30)
@@ -72,17 +99,30 @@ class LabelingMainWindow(QWidget):
         layout.addWidget(qbtn, 1, 0, 1, 1)
         layout.addWidget(lastbtn,2,0, 1, 1)
         layout.addWidget(nextbtn, 2, 4, 1, 1)
-        layout.addWidget(self.MyTable, 3, 0, 8, 8 )
+        layout.addWidget(self.MyTable, 3, 0, 8, 5 )
+        layout.addWidget(self.previewTable, 3, 5,8,5)
         layout.addWidget(savebtn, 12, 0, 1, 1)
-        layout.addWidget(submitbtn, 12, 4, 1, 1)
+        layout.addWidget(clearbtn, 12, 4, 1, 1)
+        layout.addWidget(submitbtn, 12, 5, 1, 1)
         self.setLayout(layout)
-        desktop = QDesktopWidget()
-        screenRect = desktop.screenGeometry()
-        # print screenRect.width()
-        # print screenRect.height()
         self.setGeometry(50, 50, screenRect.width()-100, screenRect.height()-100)
-        self.setWindowTitle('标注系统')
+        self.setWindowTitle('Marker')
         self.show()
+
+    def clearAction(self):
+        self.submitDialog = submitDialog(title=None)
+        self.submitDialog.surebtn.clicked.connect(self.clearData)
+        self.submitDialog.show()
+    def clearData(self):
+        key = self.typeList[self.submitDialog.MyCombo.currentIndex()]
+        if self.resultDic.has_key(key):
+            self.resultDic.pop(key)
+            self.setPreViewData()
+        self.submitDialog.close()
+
+    def onChanged(self, text):
+        dic = json.loads(text)
+        self.resultDic = dic
 
 
 
@@ -93,31 +133,75 @@ class LabelingMainWindow(QWidget):
             self.submitDialog.show()
 
     def returnJson(self):
-        dataDict = {}
+        # dataDict = {}
+        index = self.submitDialog.MyCombo.currentIndex()
+        if index == 0:
+            self.setDataWithDict(self.titleDic)
+            return self.titleDic
+        elif index == 1:
+            self.setDataWithDict(self.authorDic)
+            return self.authorDic
+        elif index == 2:
+            self.setDataWithDict(self.bodyDict)
+            return self.bodyDict
+
+
+    def setDataWithDict(self,dataDict):
         for item in self.MyTable.selectedItems():
             dataDict[str(item.row())] = item.text()
-        return dataDict
+            self.rows.append(item.row())
+
+
+
+    def getOtherRowData(self):
+        for index, text in enumerate(self.pageList):
+            realIndex = index + 1
+            if (realIndex) not in self.rows:
+                self.NADict[str(realIndex)] = text
 
     def saveSelectData(self):
-        self.submitDialog.close()
         if self.MyTable.selectedItems():
             self.resultDic[self.typeList[self.submitDialog.MyCombo.currentIndex()]] = self.returnJson()
-
+        self.submitDialog.close()
+        # self.previewTextEdit.setText(json.dumps(self.resultDic))
+        self.setPreViewData()
 
     def uploadfile(self):
-        # self.resultDic = {}
-        # print resultDic
-        resultString = json.dumps(self.resultDic)
-        # print resultString
-        pathString = self.pathList[self.index]+'.txt'
-        f = open(pathString, 'w')
-        f.write(resultString)
-        f.close()
-        self.submitDialog.close()
-        # print pathString
-        ftpmanager.uploadfile(self.ftp, "~/result/"+pathString, pathString)
-        # os.remove(pathString)
-        pass
+        if self.resultDic:
+            self.getOtherRowData()
+            self.resultDic['NA'] = self.NADict
+            resultString = json.dumps(self.resultDic)
+            pathString = self.pathList[self.index]+'.txt'
+            f = open(pathString, 'w')
+            f.write(resultString)
+            f.close()
+            self.submitDialog.close()
+            ftpmanager.uploadfile(self.ftp, "~/result/"+pathString, pathString)
+            os.remove(pathString)
+        else:
+            dia = HintDialog(title='非法json格式，请重新检查提交内容')
+            dia.show()
+
+    def setPreViewData(self):
+        previewData = self.jsonToList(self.resultDic)
+        self.previewTable.setRowCount(len(previewData))
+        for index, string in enumerate(previewData):
+            newItem = QTableWidgetItem(string)
+            self.previewTable.setItem(index, 0, newItem)
+
+    def jsonToList(self, dic):
+        jsonList = []
+        for key, value in dic.items():
+            if str(key).isdigit():
+                jsonList.append(str(key + '  ' + value))
+            else:
+                jsonList.append(str(key))
+                if type(value) == dict:
+                    jsonList.extend(self.jsonToList(value))
+                else:
+                    jsonList.append(str(value))
+
+        return jsonList
 
     def lastPDF(self):
         if self.index > 0:
@@ -130,38 +214,42 @@ class LabelingMainWindow(QWidget):
     def showScanPDFText(self):
         if len(self.pathList) == 0:
             return
-        pageList = self.pdfstring.split('\n')
-        self.MyTable.setRowCount(len(pageList))
+        self.MyTable.setRowCount(len(self.pageList))
         headerstr = str(self.index + 1) + '/' + str(len(self.pathList))
         headerItem = QTableWidgetItem(headerstr)
         self.MyTable.setHorizontalHeaderItem(0,headerItem)
-        for index,string in enumerate(pageList):
+        for index,string in enumerate(self.pageList):
             newItem = QTableWidgetItem(string)
             self.MyTable.setItem(index,0,newItem)
+
 
     def scanpdffolder(self):
         self.resultDic = {}
         if self.index < len(self.realPathList):
-            self.qblabel.setText('提取文本中···请稍后')
-            self.qblabel.adjustSize()
-            # self.stringList, self.pathList = scanpdf.scan_PDF_file(self.folderText)
+            self.setQLabelText('提取文本中···请稍后')
             self.pdfstring = scanpdf.scanPDF(self.realPathList[self.index])
-            self.qblabel.setText('提取完成')
-            self.qblabel.adjustSize()
+            strList = self.pdfstring.split('\n')
+            for text in strList:
+                if len(text) > 1:
+                    self.pageList.append(text)
+            self.setQLabelText('提取完成')
             self.showScanPDFText()
 
     def sureFolder(self):
-        self.index = 0
+        self.initTempData()
         self.folderLabel.setText(self.folderText)
         self.folderLabel.adjustSize()
         self.realPathList, self.pathList = scanpdf.getFileList(self.folderText)
         if len(self.pathList) == 0:
-            self.qblabel.setText('此文件夹无PDF文件')
+            self.setQLabelText('此文件夹无PDF文件')
         else:
-            self.qblabel.setText('已扫描到PDF文件，请点击 开始提取 ')
-        self.qblabel.adjustSize()
+            self.setQLabelText('已扫描到PDF文件，请点击 开始提取 ')
 
+        headerstr = str(self.index + 1) + '/' + str(len(self.pathList))
+        headerItem = QTableWidgetItem(headerstr)
+        self.MyTable.setHorizontalHeaderItem(0,headerItem)
         self.dialog.close()
+
     def selectDirectory(self):
         filename = QFileDialog.getExistingDirectory(self,directory='~/Desktop')
         if filename:
@@ -170,8 +258,30 @@ class LabelingMainWindow(QWidget):
             self.dialog.surebtn.clicked.connect(self.sureFolder)
             self.dialog.show()
 
+    def setQLabelText(self, text):
+        self.qblabel.setText(text)
+        self.qblabel.adjustSize()
 
 
+
+class HintDialog(QWidget):
+        def __init__(self, title=None):
+            super(InfoDialog, self).__init__()
+            self.initSubViews(title)
+        def initSubViews(self,title=''):
+            infoLabel = QLabel(self)
+            infoLabel.move(50, 50)
+            infoLabel.setText(title)
+            infoLabel.adjustSize()
+            self.surebtn = QPushButton('确定', self)
+            self.surebtn.resize(self.surebtn.sizeHint())
+            self.surebtn.move(140, 170)
+            self.surebtn.clicked.connect(self.close)
+            desktop = QDesktopWidget()
+            screenRect = desktop.screenGeometry()
+            x = (screenRect.width()-100 - 300) /  2
+            self.setGeometry(x, 300, 300, 200)
+            self.setWindowTitle('提示')
 
 class InfoDialog(QWidget):
     def __init__(self, title=None):
@@ -193,7 +303,10 @@ class InfoDialog(QWidget):
         exitbtn.clicked.connect(self.close)
         exitbtn.resize(exitbtn.sizeHint())
         exitbtn.move(150, 150)
-        self.setGeometry(350, 300, 300, 200)
+        desktop = QDesktopWidget()
+        screenRect = desktop.screenGeometry()
+        x = (screenRect.width()-100 - 300) /  2
+        self.setGeometry(x, 300, 300, 200)
         self.setWindowTitle('提示')
 
 
@@ -208,7 +321,7 @@ class submitDialog(InfoDialog):
         self.MyCombo = QComboBox()
         self.MyCombo.addItem("标题")
         self.MyCombo.addItem("作者")
-        self.MyCombo.addItem('日期')
+        self.MyCombo.addItem('正文摘要')
         exitbtn = QPushButton('取消', self)
         exitbtn.clicked.connect(self.close)
         exitbtn.resize(exitbtn.sizeHint())
@@ -218,8 +331,12 @@ class submitDialog(InfoDialog):
         layout.addWidget(self.surebtn)
         layout.addWidget(exitbtn)
         self.setLayout(layout)
-        self.setGeometry(550, 500, 200, 200)
+        desktop = QDesktopWidget()
+        screenRect = desktop.screenGeometry()
+        x = (screenRect.width()-100 - 300) /  2
+        self.setGeometry(x, 500, 300, 200)
         self.setWindowTitle('提示')
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
