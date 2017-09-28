@@ -1,6 +1,5 @@
 # encoding: UTF-8
 
-import sys
 import ftpmanager
 import scanpdf
 import json
@@ -11,6 +10,10 @@ from PyQt5.QtWidgets import qApp, QTextEdit,QDesktopWidget,QGridLayout,QApplicat
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtGui import QIcon
 import sys
+import webbrowser
+
+MANUALURL = 'http://www.jianshu.com/p/1a5933d391ad'
+
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -71,6 +74,11 @@ class LabelingMainWindow(QWidget):
         desktop = QDesktopWidget()
         screenRect = desktop.screenGeometry()
 
+        manualbtn = QPushButton('点击打开使用手册',self)
+        manualbtn.clicked.connect(self.openUrl)
+        manualbtn.resize(manualbtn.sizeHint())
+
+
         clearbtn = QPushButton('清除标签标记内容', self)
         clearbtn.resize(submitbtn.sizeHint())
         clearbtn.clicked.connect(self.clearAction)
@@ -95,7 +103,7 @@ class LabelingMainWindow(QWidget):
         layout.addWidget(selectbtn, 0, 0, 1, 1)
         layout.addWidget(self.folderLabel,0, 4, 1 ,1)
         layout.addWidget(self.qblabel,1,4,1, 1)
-
+        layout.addWidget(manualbtn, 0, 8, 1, 1)
         layout.addWidget(qbtn, 1, 0, 1, 1)
         layout.addWidget(lastbtn,2,0, 1, 1)
         layout.addWidget(nextbtn, 2, 4, 1, 1)
@@ -109,8 +117,12 @@ class LabelingMainWindow(QWidget):
         self.setWindowTitle('Marker')
         self.show()
 
+    def openUrl(self):
+    #     webbrowser.open(MANUALURL, new=0, autoraise=True)
+    #     webbrowser.open_new(MANUALURL)
+        webbrowser.open_new_tab(MANUALURL)
     def clearAction(self):
-        self.submitDialog = submitDialog(title=None)
+        self.submitDialog = submitDialog(title='请选择需要清除标记的标签 :')
         self.submitDialog.surebtn.clicked.connect(self.clearData)
         self.submitDialog.show()
     def clearData(self):
@@ -165,6 +177,9 @@ class LabelingMainWindow(QWidget):
         self.submitDialog.close()
         # self.previewTextEdit.setText(json.dumps(self.resultDic))
         self.setPreViewData()
+
+    def showUploadInfo(self):
+
 
     def uploadfile(self):
         if self.resultDic:
@@ -225,6 +240,7 @@ class LabelingMainWindow(QWidget):
 
     def scanpdffolder(self):
         self.resultDic = {}
+        self.setPreViewData()
         if self.index < len(self.realPathList):
             self.setQLabelText('提取文本中···请稍后')
             self.pdfstring = scanpdf.scanPDF(self.realPathList[self.index])
@@ -311,10 +327,14 @@ class InfoDialog(QWidget):
 
 
 class submitDialog(InfoDialog):
-    def initSubViews(self,title=''):
+    def initSubViews(self,title=None):
+        text = '请选择选中内容类型：'
+        if title:
+            text = title
+
         textLabel = QLabel(self)
         textLabel.move(50, 30)
-        textLabel.setText('请选择选中内容类型：')
+        textLabel.setText(text)
         textLabel.adjustSize()
         self.surebtn = QPushButton('确定', self)
         self.surebtn.resize(self.surebtn.sizeHint())
