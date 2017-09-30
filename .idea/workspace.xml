@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="923d3524-6b55-463a-9550-cffecd43c68d" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Marker.py" afterPath="$PROJECT_DIR$/Marker.py" />
-    </list>
+    <list default="true" id="923d3524-6b55-463a-9550-cffecd43c68d" name="Default" comment="" />
     <ignored path="Maker.iws" />
     <ignored path=".idea/workspace.xml" />
     <ignored path=".idea/dataSources.local.xml" />
@@ -30,8 +27,8 @@
       <file leaf-file-name="marker.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/marker.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="186">
-              <caret line="292" column="0" selection-start-line="292" selection-start-column="0" selection-end-line="292" selection-end-column="0" />
+            <state relative-caret-position="351">
+              <caret line="303" column="52" selection-start-line="303" selection-start-column="52" selection-end-line="303" selection-end-column="52" />
               <folding>
                 <element signature="e#19#36#0" expanded="true" />
               </folding>
@@ -88,8 +85,8 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="89" />
-    <option name="y" value="89" />
+    <option name="x" value="-317" />
+    <option name="y" value="155" />
     <option name="width" value="1225" />
     <option name="height" value="616" />
   </component>
@@ -401,7 +398,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="89" y="89" width="1225" height="616" extended-state="0" />
+    <frame x="-317" y="155" width="1225" height="616" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22654268" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -470,8 +467,8 @@
     <entry file="file://$PROJECT_DIR$/Setvin_direct_view_Excess_e_R_A_PRL_2014.pdf.txt" />
     <entry file="file://$PROJECT_DIR$/marker.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="186">
-          <caret line="292" column="0" selection-start-line="292" selection-start-column="0" selection-end-line="292" selection-end-column="0" />
+        <state relative-caret-position="351">
+          <caret line="303" column="52" selection-start-line="303" selection-start-column="52" selection-end-line="303" selection-end-column="52" />
           <folding>
             <element signature="e#19#36#0" expanded="true" />
           </folding>
