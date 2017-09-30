@@ -23,6 +23,8 @@ class LabelingMainWindow(QWidget):
         super(LabelingMainWindow, self).__init__()
         self.folderText = scanpdf.ROOT_PATH
         self.initUI()
+        self.initAction()
+
         self.typeList = ['title','author','body']
         self.initTempData()
         self.ftp = ftpmanager.ftpconnect(ftpmanager.FTPIP, ftpmanager.FTPUSER, ftpmanager.FTPPASSWD)
@@ -41,7 +43,23 @@ class LabelingMainWindow(QWidget):
         self.pdfstring = ''
         self.index = 0
         self.pageList = []
+        self.saveIndex = 0
 
+    def initAction(self):
+        self.titleAction = QAction(QIcon('icon.png'), 'Mark', self)
+        self.titleAction.setShortcut('Ctrl+T')
+        self.titleAction.triggered.connect(self.saveTitle)
+        self.addAction(self.titleAction)
+        self.authorAction = QAction(QIcon('icon.png'), 'Mark', self)
+        self.authorAction.setShortcut('Ctrl+A')
+        self.authorAction.triggered.connect(self.saveAuthor)
+
+        self.bodyAction = QAction(QIcon('icon.png'), 'Mark', self)
+        self.bodyAction.setShortcut('Ctrl+B')
+        self.bodyAction.triggered.connect(self.savebody)
+        self.addAction(self.titleAction)
+        self.addAction(self.authorAction)
+        self.addAction(self.bodyAction)
 
     def initUI(self):
         infoLabel = QLabel(self)
@@ -58,7 +76,6 @@ class LabelingMainWindow(QWidget):
         self.qblabel = QLabel(self)
         self.qblabel.setText('请先选择文件夹 ！')
         self.qblabel.adjustSize()
-
         nextbtn = QPushButton('下一个', self)
         nextbtn.clicked.connect(self.nextPDF)
         nextbtn.resize(nextbtn.sizeHint())
@@ -68,25 +85,23 @@ class LabelingMainWindow(QWidget):
         savebtn = QPushButton('保存已选内容', self)
         savebtn.clicked.connect(self.creatJSONString)
         savebtn.resize(savebtn.sizeHint())
+
         submitbtn = QPushButton('提交此页内容', self)
         submitbtn.clicked.connect(self.uploadfile)
         submitbtn.resize(submitbtn.sizeHint())
+
+
         desktop = QDesktopWidget()
         screenRect = desktop.screenGeometry()
-
         manualbtn = QPushButton('点击打开使用手册',self)
         manualbtn.clicked.connect(self.openUrl)
         manualbtn.resize(manualbtn.sizeHint())
-
-
         clearbtn = QPushButton('清除标签标记内容', self)
         clearbtn.resize(submitbtn.sizeHint())
         clearbtn.clicked.connect(self.clearAction)
-
         self.MyTable = QTableWidget(1,1)
         self.MyTable.setColumnWidth(0, (screenRect.width()-100) / 2 - 20)
         self.MyTable.setShowGrid(False)
-
         item = QTableWidgetItem('0/0')
         self.MyTable.setHorizontalHeaderItem(0, item)
         self.previewTable = QTableWidget(1,1)
@@ -101,12 +116,12 @@ class LabelingMainWindow(QWidget):
         layout.setHorizontalSpacing(50)
         layout.setVerticalSpacing(30)
         layout.addWidget(selectbtn, 0, 0, 1, 1)
-        layout.addWidget(self.folderLabel,0, 4, 1 ,1)
-        layout.addWidget(self.qblabel,1,4,1, 1)
+        layout.addWidget(self.folderLabel,0, 5, 1 ,4)
+        layout.addWidget(self.qblabel,1,5,1, 4)
         layout.addWidget(manualbtn, 0, 8, 1, 1)
         layout.addWidget(qbtn, 1, 0, 1, 1)
         layout.addWidget(lastbtn,2,0, 1, 1)
-        layout.addWidget(nextbtn, 2, 4, 1, 1)
+        layout.addWidget(nextbtn, 2, 5, 1, 1)
         layout.addWidget(self.MyTable, 3, 0, 8, 5 )
         layout.addWidget(self.previewTable, 3, 5,8,5)
         layout.addWidget(savebtn, 12, 0, 1, 1)
@@ -146,14 +161,17 @@ class LabelingMainWindow(QWidget):
 
     def returnJson(self):
         # dataDict = {}
-        index = self.submitDialog.MyCombo.currentIndex()
-        if index == 0:
+        try:
+            self.saveIndex = self.submitDialog.MyCombo.currentIndex()
+        except AttributeError:
+            pass
+        if self.saveIndex == 0:
             self.setDataWithDict(self.titleDic)
             return self.titleDic
-        elif index == 1:
+        elif self.saveIndex == 1:
             self.setDataWithDict(self.authorDic)
             return self.authorDic
-        elif index == 2:
+        elif self.saveIndex == 2:
             self.setDataWithDict(self.bodyDict)
             return self.bodyDict
 
@@ -171,16 +189,29 @@ class LabelingMainWindow(QWidget):
             if (realIndex) not in self.rows:
                 self.NADict[str(realIndex)] = text
 
-    def saveSelectData(self):
-        if self.MyTable.selectedItems():
-            self.resultDic[self.typeList[self.submitDialog.MyCombo.currentIndex()]] = self.returnJson()
-        self.submitDialog.close()
-        # self.previewTextEdit.setText(json.dumps(self.resultDic))
-        self.setPreViewData()
 
+    def saveTitle(self):
+        self.saveData(0)
+
+    def saveAuthor(self):
+        self.saveData(1)
+
+    def savebody(self):
+        self.saveData(2)
+
+    def saveSelectData(self):
+        self.saveData(self.submitDialog.MyCombo.currentIndex())
+        self.submitDialog.close()
+
+    def saveData(self, index):
+        self.saveIndex = index
+        if self.MyTable.selectedItems():
+            self.resultDic[self.typeList[index]] = self.returnJson()
+            self.setPreViewData()
 
 
     def uploadfile(self):
+
         if self.resultDic:
             self.getOtherRowData()
             self.resultDic['NA'] = self.NADict
@@ -189,9 +220,13 @@ class LabelingMainWindow(QWidget):
             f = open(pathString, 'w')
             f.write(resultString)
             f.close()
-            self.submitDialog.close()
+            try:
+                self.submitDialog.close()
+            except AttributeError:
+                pass
             ftpmanager.uploadfile(self.ftp, "~/result/"+pathString, pathString)
             os.remove(pathString)
+            self.setQLabelText(pathString + ' 已提交完成!')
         else:
             dia = HintDialog(title='非法json格式，请重新检查提交内容')
             dia.show()
@@ -207,7 +242,9 @@ class LabelingMainWindow(QWidget):
         jsonList = []
         for key, value in dic.items():
             if str(key).isdigit():
-                jsonList.append(str(key + '  ' + value))
+                index = int(key) + 1
+                jsonList.append(str(str(index) + '  ' + value))
+
             else:
                 jsonList.append(str(key))
                 if type(value) == dict:
@@ -239,6 +276,10 @@ class LabelingMainWindow(QWidget):
 
     def scanpdffolder(self):
         self.resultDic = {}
+        self.authorDic = {}
+        self.bodyDict = {}
+        self.titleDic = {}
+        
         self.setPreViewData()
         if self.index < len(self.realPathList):
             self.setQLabelText('提取文本中···请稍后')
@@ -247,7 +288,7 @@ class LabelingMainWindow(QWidget):
             for text in strList:
                 if len(text) > 1:
                     self.pageList.append(text)
-            self.setQLabelText('提取完成')
+            self.setQLabelText(self.pathList[self.index] + ' 已提取完成')
             self.showScanPDFText()
 
     def sureFolder(self):
