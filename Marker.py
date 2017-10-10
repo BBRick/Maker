@@ -285,6 +285,7 @@ class LabelingMainWindow(QWidget):
             self.setQLabelText('提取文本中···请稍后')
             self.pdfstring = scanpdf.scanPDF(self.realPathList[self.index])
             strList = self.pdfstring.split('\n')
+            self.pageList = []
             for text in strList:
                 if len(text) > 1:
                     self.pageList.append(text)
