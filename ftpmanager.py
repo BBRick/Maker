@@ -1,5 +1,5 @@
 # !/usr/bin/python
-# -*- coding: utf-8 -*-from ftplib import FTP
+# -*- coding: utf-8 -*-
 import time
 import tarfile
 import os

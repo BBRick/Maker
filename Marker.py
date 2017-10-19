@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import qApp, QTextEdit,QDesktopWidget,QGridLayout,QApplicat
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtGui import QIcon
 import sys
+import re
 import webbrowser
 
 MANUALURL = 'http://www.jianshu.com/p/1a5933d391ad'
@@ -279,16 +280,21 @@ class LabelingMainWindow(QWidget):
         self.authorDic = {}
         self.bodyDict = {}
         self.titleDic = {}
-        
+        # print '开始提取'
         self.setPreViewData()
         if self.index < len(self.realPathList):
             self.setQLabelText('提取文本中···请稍后')
             self.pdfstring = scanpdf.scanPDF(self.realPathList[self.index])
+            # print self.pdfstring
             strList = self.pdfstring.split('\n')
             self.pageList = []
+            r = r"[^a-zA-Z0-9\_\u4e00-\u9fa5\.\,\/\ \~\!\@\#\$\%\^\&\*\(\)\-\=\{\}\?\[\]\|\\]"
+
             for text in strList:
+
                 if len(text) > 1:
-                    self.pageList.append(text)
+                    finalText = re.sub(r, ' ', text)
+                    self.pageList.append(finalText)
             self.setQLabelText(self.pathList[self.index] + ' 已提取完成')
             self.showScanPDFText()
 
