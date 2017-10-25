@@ -19,18 +19,17 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 class LabelingMainWindow(QWidget):
-
     def __init__(self):
         super(LabelingMainWindow, self).__init__()
         self.folderText = scanpdf.ROOT_PATH
         self.initUI()
         self.initAction()
-
         self.typeList = ['title','author','body']
         self.initTempData()
-        self.ftp = ftpmanager.ftpconnect(ftpmanager.FTPIP, ftpmanager.FTPUSER, ftpmanager.FTPPASSWD)
-
-
+        try:
+            self.ftp = ftpmanager.ftpconnect(ftpmanager.FTPIP, ftpmanager.FTPUSER, ftpmanager.FTPPASSWD)
+        except:
+            pass
     def initTempData(self):
         self.titleDic = {}
         self.authorDic = {}
@@ -54,7 +53,6 @@ class LabelingMainWindow(QWidget):
         self.authorAction = QAction(QIcon('icon.png'), 'Mark', self)
         self.authorAction.setShortcut('Ctrl+A')
         self.authorAction.triggered.connect(self.saveAuthor)
-
         self.bodyAction = QAction(QIcon('icon.png'), 'Mark', self)
         self.bodyAction.setShortcut('Ctrl+B')
         self.bodyAction.triggered.connect(self.savebody)
@@ -133,6 +131,7 @@ class LabelingMainWindow(QWidget):
         self.setWindowTitle('Marker')
         self.show()
 
+
     def openUrl(self):
     #     webbrowser.open(MANUALURL, new=0, autoraise=True)
     #     webbrowser.open_new(MANUALURL)
@@ -176,11 +175,19 @@ class LabelingMainWindow(QWidget):
             self.setDataWithDict(self.bodyDict)
             return self.bodyDict
 
-
     def setDataWithDict(self,dataDict):
         for item in self.MyTable.selectedItems():
-            dataDict[str(item.row())] = item.text()
-            self.rows.append(item.row())
+            self.clearRepeatKey(item.row())
+            dataDict[item.row()] = item.text()
+            if item.row() not in self.rows:
+                self.rows.append(item.row())
+    def clearRepeatKey(self, key):
+        if self.titleDic.has_key(key):
+            del self.titleDic[key]
+        if self.authorDic.has_key(key):
+            del self.authorDic[key]
+        if self.bodyDict.has_key(key):
+            del self.bodyDict[key]
 
 
 
@@ -225,9 +232,12 @@ class LabelingMainWindow(QWidget):
                 self.submitDialog.close()
             except AttributeError:
                 pass
-            ftpmanager.uploadfile(self.ftp, "~/result/"+pathString, pathString)
-            os.remove(pathString)
-            self.setQLabelText(pathString + ' 已提交完成!')
+            try:
+                ftpmanager.uploadfile(self.ftp, "~/result/"+pathString, pathString)
+                os.remove(pathString)
+                self.setQLabelText(pathString + ' 已提交完成!')
+            except:
+                self.setQLabelText('FTP链接异常!!!!!!!!!!!!!!!!!!!!!')
         else:
             dia = HintDialog(title='非法json格式，请重新检查提交内容')
             dia.show()
@@ -241,9 +251,13 @@ class LabelingMainWindow(QWidget):
 
     def jsonToList(self, dic):
         jsonList = []
-        for key, value in dic.items():
+
+        items = dic.items()
+        items.sort()
+        for key, value in items:
             if str(key).isdigit():
                 index = int(key) + 1
+                # indexList.append(index)
                 jsonList.append(str(str(index) + '  ' + value))
 
             else:
